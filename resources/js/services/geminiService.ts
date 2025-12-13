@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Medicine, DosageSuggestion, Patient, Prescription } from '../types';
 
-const API_KEY = import.meta.env.VITE_API_KEY as string | undefined || "AIzaSyCWQb2-1ebQXP8FM3wubVjPv0ZmYHziDQA";
+const API_KEY = import.meta.env.VITE_API_KEY as string | undefined || "AIzaSyCwGjZXGhPLsv-jPSOW8Z1i_N4Zn01NQso";
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : undefined;
 
 export const geminiService = {
