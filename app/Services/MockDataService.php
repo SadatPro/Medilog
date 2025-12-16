@@ -323,6 +323,29 @@ class MockDataService
         }
     }
 
+    public function removeAccess(string $doctorId, string $patientId): void
+    {
+        $patientIndex = $this->findPatientIndex($patientId);
+        if ($patientIndex === -1) {
+            return;
+        }
+        // Remove from patient's followRequests
+        $this->patients[$patientIndex]['followRequests'] = array_values(array_filter(
+            $this->patients[$patientIndex]['followRequests'],
+            fn ($req) => $req['doctorId'] !== $doctorId
+        ));
+        
+        // Remove from doctor's followedPatients
+        foreach ($this->doctors as &$doctor) {
+            if ($doctor['id'] === $doctorId) {
+                $doctor['followedPatients'] = array_values(array_filter(
+                    $doctor['followedPatients'],
+                    fn ($id) => $id !== $patientId
+                ));
+            }
+        }
+    }
+
     public function allState(): array
     {
         return [

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Patient, Prescription } from '../types';
 import { useTranslations } from '../contexts/TranslationContext';
 import { geminiService } from '../services/geminiService';
-import { IconBrain, IconSpinner } from './icons';
+import { IconSpinner } from './icons';
+import { FaRobot } from 'react-icons/fa';
 
 interface HealthAssistantProps {
     patient: Patient;
@@ -15,23 +16,60 @@ interface Message {
 }
 
 export const HealthAssistant: React.FC<HealthAssistantProps> = ({ patient, prescriptions }) => {
-    const { t } = useTranslations();
+    const { t, language } = useTranslations();
     const [tips, setTips] = useState<string[]>([]);
     const [tipsLoading, setTipsLoading] = useState(true);
+    const [tipsError, setTipsError] = useState<string>('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [chatError, setChatError] = useState<string>('');
     const chatBoxRef = useRef<HTMLDivElement>(null);
+    const lastTipsAtRef = useRef<number>(0);
+    const tipsDigestRef = useRef<string>('');
+    const TIPS_MIN_INTERVAL_MS = 10 * 60 * 1000;
+
+    // Memoized function to prevent infinite loops
+    const fetchTips = useCallback(async () => {
+        setTipsLoading(true);
+        setTipsError('');
+        try {
+            const generatedTips = await geminiService.getAutomatedHealthTips(patient, prescriptions, language);
+            setTips(generatedTips);
+        } catch (error) {
+            console.error("Error fetching health tips:", error);
+            const errorMessage = language === 'bn' 
+                ? "স্বাস্থ্য টিপস লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।" 
+                : "Failed to load health tips. Please try again.";
+            setTips([errorMessage]);
+            setTipsError(errorMessage);
+        } finally {
+            setTipsLoading(false);
+        }
+    }, [patient, prescriptions, language]);
+
+    const fetchTipsThrottled = useCallback(async () => {
+        const now = Date.now();
+        const digest = JSON.stringify({
+            vitals: patient.vitals,
+            presLen: prescriptions.length,
+            lang: language
+        });
+        const tooSoon = now - lastTipsAtRef.current < TIPS_MIN_INTERVAL_MS;
+        const unchanged = tipsDigestRef.current === digest;
+        if (tooSoon && unchanged) {
+            setTipsLoading(false);
+            return;
+        }
+        tipsDigestRef.current = digest;
+        lastTipsAtRef.current = now;
+        await fetchTips();
+    }, [patient.vitals, prescriptions.length, language, fetchTips]);
 
     useEffect(() => {
-        const fetchTips = async () => {
-            setTipsLoading(true);
-            const generatedTips = await geminiService.getAutomatedHealthTips(patient, prescriptions);
-            setTips(generatedTips);
-            setTipsLoading(false);
-        };
-        fetchTips();
-    }, [patient, prescriptions]);
+        // Only fetch tips once when component mounts or when patient/prescriptions actually change
+        fetchTipsThrottled();
+    }, [fetchTipsThrottled]);
 
     useEffect(() => {
         if (chatBoxRef.current) {
@@ -41,69 +79,137 @@ export const HealthAssistant: React.FC<HealthAssistantProps> = ({ patient, presc
 
     const handleSend = async () => {
         if (!input.trim()) return;
-        const userMessage: Message = { text: input, sender: 'user' };
+        
+        setChatError('');
+        const userMessage: Message = { text: input.trim(), sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsSending(true);
 
-        const response = await geminiService.getPersonalizedHealthAdvice(patient, prescriptions, input);
-        const aiMessage: Message = { text: response, sender: 'ai' };
-        setMessages(prev => [...prev, aiMessage]);
-        setIsSending(false);
+        try {
+            const response = await geminiService.getPersonalizedHealthAdvice(patient, prescriptions, input.trim(), language);
+            const aiMessage: Message = { text: response, sender: 'ai' };
+            setMessages(prev => [...prev, aiMessage]);
+        } catch (error) {
+            console.error("Error getting health advice:", error);
+            const errorMessage = language === 'bn' 
+                ? "দুঃখিত, পরামর্শ পেতে ব্যর্থ হয়েছি। অনুগ্রহ করে আবার চেষ্টা করুন।" 
+                : "Sorry, I couldn't get advice. Please try again.";
+            const aiErrorMessage: Message = { text: errorMessage, sender: 'ai' };
+            setMessages(prev => [...prev, aiErrorMessage]);
+            setChatError(errorMessage);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    const handleRetryTips = () => {
+        lastTipsAtRef.current = 0;
+        fetchTipsThrottled();
     };
 
     return (
-        <div className="p-6 card-bg rounded-lg shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-                <IconBrain className="h-6 w-6 text-gray-400" />
-                <h2 className="font-plex-mono text-xl text-white">{t('aiHealthAssistant')}</h2>
+        <div className="health-assistant">
+            <div className="assistant-header">
+                <FaRobot className="header-icon" />
+                <h2>{t('healthAssistant')}</h2>
             </div>
             
-            <div className="mb-6">
-                <h3 className="font-plex-mono text-base text-gray-400 mb-3">{t('healthTips')}</h3>
-                <div className="p-4 list-item-bg rounded-md min-h-[100px]">
-                    {tipsLoading ? (
-                         <div className="flex items-center justify-center h-full"><IconSpinner className="h-6 w-6 text-gray-500" /></div>
-                    ) : (
-                         <ul className="space-y-3 text-sm text-gray-300">
-                            {tips.map((tip, i) => (
-                                <li key={i} className="flex items-start gap-3">
-                                    <div className="mt-1 w-4 h-4 flex-shrink-0 bg-gray-700 rounded-full border-2 border-gray-600"></div>
-                                    <span>{tip}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </div>
-
-            <div ref={chatBoxRef} className="h-64 overflow-y-auto p-4 list-item-bg rounded-md mb-4 space-y-4">
-                {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div
-                            className={`p-3 rounded-lg max-w-md text-sm text-white ${msg.sender === 'user' ? 'bg-gray-800' : 'bg-gray-700'}`}
-                             dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br />') }}
-                        />
+            <div className="tips-section">
+                <h3>{t('dailyTips')}</h3>
+                {tipsLoading ? (
+                    <div className="loading-tips">
+                        <IconSpinner className="spinner" />
+                        <span>{t('generatingTips')}</span>
                     </div>
-                ))}
+                ) : tipsError ? (
+                    <div className="tips-error">
+                        <div className="error-icon">⚠️</div>
+                        <div className="error-content">
+                            <p className="error-message">{tipsError}</p>
+                            <button 
+                                onClick={handleRetryTips} 
+                                className="retry-button"
+                                disabled={tipsLoading}
+                            >
+                                {language === 'bn' ? 'আবার চেষ্টা করুন' : 'Try Again'}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="tips-list">
+                        {tips.map((tip, index) => (
+                            <div key={index} className="tip-item">
+                                <span className="tip-number">{index + 1}.</span>
+                                <span className="tip-text">{tip}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            <div className="flex gap-2">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSend()}
-                    placeholder={t('askAnything')}
-                    className="flex-grow px-4 py-2 bg-black border border-gray-700 rounded-md text-sm"
-                />
-                <button
-                    onClick={handleSend}
-                    disabled={isSending}
-                    className="action-btn flex-shrink-0 px-6 py-2 border border-gray-700 bg-white text-black rounded-md hover:bg-gray-300 font-plex-mono text-sm disabled:bg-gray-900"
-                >
-                    {isSending ? t('sending') : t('send')}
-                </button>
+            <div className="chat-section">
+                <h3>{t('askAQuestion')}</h3>
+                <div className="chat-container">
+                    <div className="chat-messages" ref={chatBoxRef}>
+                        {messages.length === 0 ? (
+                            <div className="chat-empty">
+                                <div className="empty-icon">🤖</div>
+                                <p>{t('askHealthQuestion')}</p>
+                                <small className="empty-hint">
+                                    {language === 'bn' 
+                                        ? "আপনার স্বাস্থ্য-সম্পর্কিত প্রশ্ন টাইপ করুন এবং এন্টার চাপুন" 
+                                        : "Type your health-related question and press Enter"}
+                                </small>
+                            </div>
+                        ) : (
+                            messages.map((message, index) => (
+                                <div key={index} className={`message ${message.sender}`}>
+                                    <div className="message-bubble">
+                                        {message.text}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        {isSending && (
+                            <div className="message ai">
+                                <div className="message-bubble">
+                                    <IconSpinner className="spinner-small" />
+                                    <span>{t('thinking')}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="chat-input">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyPress}
+                            placeholder={t('typeYourQuestion')}
+                            rows={2}
+                            disabled={isSending}
+                            maxLength={500}
+                        />
+                        <div className="input-meta">
+                            <span className="char-count">{input.length}/500</span>
+                            {chatError && <span className="chat-error">{chatError}</span>}
+                        </div>
+                        <button 
+                            onClick={handleSend} 
+                            disabled={!input.trim() || isSending}
+                            className="send-button"
+                        >
+                            {isSending ? <IconSpinner className="spinner-small" /> : t('send')}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

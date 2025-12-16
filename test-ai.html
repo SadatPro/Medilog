@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Test</title>
+</head>
+<body>
+    <h1>Testing AI Assistant</h1>
+    <div id="result"></div>
+    
+    <script type="module">
+        // Test if VITE_API_KEY is available
+        console.log('VITE_API_KEY:', import.meta.env.VITE_API_KEY);
+        
+        // Test Gemini service
+        import { geminiService } from './resources/js/services/geminiService.ts';
+        
+        async function testAI() {
+            try {
+                console.log('Testing medicine suggestions...');
+                const suggestions = await geminiService.suggestMedicines('paracetamol');
+                console.log('Suggestions:', suggestions);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Test Results:</h3>
+                    <p>API Key: ${import.meta.env.VITE_API_KEY ? 'Present' : 'Missing'}</p>
+                    <p>Suggestions: ${suggestions.length} found</p>
+                    <pre>${JSON.stringify(suggestions, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('AI Test Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        testAI();
+    </script>
+</body>
+</html>

@@ -168,6 +168,7 @@ class MedilogController extends Controller
             'allergies' => $data['allergies'] ?? $patient->allergies,
             'asthma' => $data['asthma'] ?? $patient->asthma,
             'major_conditions' => $data['majorConditions'] ?? $patient->major_conditions,
+            'vitals' => $data['vitals'] ?? $patient->vitals,
         ])->save();
         if ($newPassword !== null) {
             if (!$currentPassword || !Hash::check($currentPassword, $patient->password)) {
@@ -246,6 +247,19 @@ class MedilogController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function removeAccess(Request $request): JsonResponse
+    {
+        $doctorUid = (string)$request->input('doctorId', '');
+        $patientUid = (string)$request->input('patientId', '');
+        $doctor = Doctor::where('uid', $doctorUid)->first();
+        $patient = Patient::where('uid', $patientUid)->first();
+        if (!$doctor || !$patient) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+        FollowRequest::where('patient_id', $patient->id)->where('doctor_id', $doctor->id)->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function registerDoctor(Request $request): JsonResponse
     {
         $data = $request->only(['name', 'specialization', 'email', 'phone', 'password', 'dateOfBirth', 'nid', 'profilePictureUrl']);
@@ -294,6 +308,66 @@ class MedilogController extends Controller
         $email = (string)$request->input('email', '');
         $exists = Doctor::where('email', $email)->exists() || Patient::where('email', $email)->exists();
         return response()->json(['ok' => $exists]);
+    }
+
+    public function seedDemoPatients(): JsonResponse
+    {
+        $created = [];
+        $patientsData = [
+            [
+                'uid' => 'PAT-001',
+                'username' => 'sameera_a',
+                'name' => 'Sameera Ahmed',
+                'age' => 34,
+                'gender' => 'Female',
+                'date_of_birth' => '1990-05-15',
+                'nid' => '1990123456789',
+                'vitals' => [
+                    ['label' => 'Blood Pressure', 'value' => '120/80', 'unit' => 'mmHg', 'date' => '2024-07-21'],
+                    ['label' => 'Blood Glucose', 'value' => '5.5', 'unit' => 'mmol/L', 'date' => '2024-07-21'],
+                    ['label' => 'Pulse', 'value' => '72', 'unit' => 'bpm', 'date' => '2024-07-21'],
+                    ['label' => 'SpO2', 'value' => '98', 'unit' => '%', 'date' => '2024-07-21'],
+                ],
+                'major_conditions' => ['Diabetes Type 2', 'Hypertension'],
+                'blood_group' => 'O+',
+                'allergies' => 'Pollen, Dust',
+                'asthma' => 'No',
+                'email' => 'sameera.a@email.com',
+                'phone' => '01812345678',
+                'password' => Hash::make('password123'),
+                'profile_picture_url' => 'https://i.pravatar.cc/150?img=32',
+            ],
+            [
+                'uid' => 'PAT-002',
+                'username' => 'rahim_s',
+                'name' => 'Rahim Sheikh',
+                'age' => 52,
+                'gender' => 'Male',
+                'date_of_birth' => '1972-03-10',
+                'nid' => '1972123456789',
+                'vitals' => [
+                    ['label' => 'Blood Pressure', 'value' => '140/90', 'unit' => 'mmHg', 'date' => '2024-07-20'],
+                ],
+                'major_conditions' => [],
+                'blood_group' => null,
+                'allergies' => null,
+                'asthma' => null,
+                'email' => 'rahim.s@email.com',
+                'phone' => '01309250507',
+                'password' => Hash::make('password123'),
+                'profile_picture_url' => 'https://i.pravatar.cc/150?img=12',
+            ],
+        ];
+        foreach ($patientsData as $pdata) {
+            $pat = Patient::firstOrCreate(
+                ['username' => $pdata['username'], 'phone' => $pdata['phone']],
+                $pdata
+            );
+            if ($pat->wasRecentlyCreated) {
+                $created[] = $pat->uid;
+            }
+        }
+        return response()->json(['ok' => true, 'created' => $created]);
     }
 
     private function serializeDoctor(Doctor $doctor): array

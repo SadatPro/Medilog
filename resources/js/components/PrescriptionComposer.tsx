@@ -33,7 +33,7 @@ const AdviceSection: React.FC<{
 
     return (
         <fieldset className="p-4 list-item-bg rounded-lg">
-            <legend className="px-2 font-plex-mono text-sm text-white flex items-center gap-2">
+            <legend className="px-2 font-plex-mono text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 {icon}
                 <span>{title}</span>
             </legend>
@@ -44,7 +44,7 @@ const AdviceSection: React.FC<{
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
                     placeholder={placeholder}
-                    className="flex-grow px-3 py-2 bg-black border border-gray-700 rounded-md text-sm"
+                    className="flex-grow px-3 py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-300 dark:border-purple-500/50 rounded-md text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm"
                 />
                 <button
                     type="button"
@@ -57,8 +57,8 @@ const AdviceSection: React.FC<{
             {items.length > 0 && (
                 <ul className="mt-3 space-y-2">
                     {items.map((item, index) => (
-                        <li key={index} className="flex justify-between items-center bg-black/50 p-2 rounded-md animate-fade-in">
-                            <span className="text-sm text-gray-300">{item}</span>
+                        <li key={index} className="flex justify-between items-center bg-gradient-to-r from-purple-900/40 to-blue-900/40 p-3 rounded-md animate-fade-in border border-purple-500/30">
+                            <span className="text-sm text-gray-900 dark:text-white font-medium">{item}</span>
                             <button onClick={() => onRemove(index)} className="text-gray-500 hover:text-red-500">
                                 <IconTrash />
                             </button>
@@ -102,25 +102,25 @@ const FindingsSection: React.FC<{
 
     return (
         <fieldset className="p-4 list-item-bg rounded-lg">
-            <legend className="px-2 font-plex-mono text-sm text-white flex items-center gap-2">
+            <legend className="px-2 font-plex-mono text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <IconClipboardCheck />
-                <span>{t('findings')}</span>
-            </legend>
+                                <span>{t('findings')}</span>
+                        </legend>
             <div className="space-y-3">
                 <select
                     value={selectedRecord}
                     onChange={(e) => setSelectedRecord(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 bg-black border border-gray-700 rounded-md text-sm"
+                    className="w-full mt-1 px-3 py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-300 dark:border-purple-500/50 rounded-md text-gray-900 dark:text-white focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm font-medium"
                 >
-                    <option value="" disabled>{t('selectRecord')}</option>
+                    <option value="" disabled className="bg-gradient-to-r from-purple-200 to-blue-200 dark:from-purple-800 dark:to-blue-800 text-gray-900 dark:text-white font-semibold">{t('selectRecord')}</option>
                     {allRecords.length > 0 ? (
                         allRecords.map(r => (
-                            <option key={`${r.recordType}-${r.id}`} value={`${r.recordType}-${r.id}`}>
+                            <option key={`${r.recordType}-${r.id}`} value={`${r.recordType}-${r.id}`} className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-700 dark:to-blue-700 text-gray-900 dark:text-white hover:from-purple-200 hover:to-blue-200 dark:hover:from-purple-600 dark:hover:to-blue-600 transition-all duration-200">
                                 {r.name} ({new Date(r.date).toLocaleDateString('en-CA')})
                             </option>
                         ))
                     ) : (
-                        <option disabled>{t('noRecordsToComment')}</option>
+                        <option disabled className="bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 text-gray-600 dark:text-gray-300">{t('noRecordsToComment')}</option>
                     )}
                 </select>
                 <textarea
@@ -128,7 +128,7 @@ const FindingsSection: React.FC<{
                     onChange={(e) => setComment(e.target.value)}
                     placeholder={t('comment')}
                     rows={2}
-                    className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md text-sm"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-300 dark:border-purple-500/50 rounded-md text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm font-medium"
                 />
                 <button
                     type="button"
@@ -141,14 +141,14 @@ const FindingsSection: React.FC<{
                  {findings.length > 0 && (
                     <ul className="mt-3 space-y-2 border-t border-gray-700 pt-3">
                         {findings.map((finding, index) => (
-                            <li key={index} className="bg-black/50 p-2 rounded-md animate-fade-in text-sm">
+                            <li key={index} className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 p-4 rounded-md animate-fade-in text-sm border border-purple-400/50 shadow-lg">
                                 <div className="flex justify-between items-start">
-                                    <p className="font-semibold text-gray-300">{finding.recordName}</p>
+                                    <p className="font-semibold text-white text-base">{finding.recordName}</p>
                                     <button onClick={() => onRemoveFinding(index)} className="text-gray-500 hover:text-red-500 flex-shrink-0 ml-2">
                                         <IconTrash />
                                     </button>
                                 </div>
-                                <p className="text-gray-400 mt-1">"{finding.comment}"</p>
+                                <p className="text-sm text-purple-800 dark:text-purple-200 mt-2 font-plex-mono leading-relaxed">"{finding.comment}"</p>
                             </li>
                         ))}
                     </ul>
@@ -190,8 +190,8 @@ export const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ pati
         <>
             <div className="p-6 card-bg rounded-lg shadow-xl">
                  <div className="flex items-center gap-3 mb-6">
-                    <IconPrescription className="h-6 w-6 text-gray-400" />
-                    <h2 className="font-plex-mono text-xl text-white">{t('composePrescription')}</h2>
+                    <IconPrescription className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                    <h2 className="font-plex-mono text-xl text-gray-900 dark:text-white">{t('composePrescription')}</h2>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -227,7 +227,7 @@ export const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ pati
                             icon={<IconClipboardList />}
                         />
                          <fieldset className="p-4 list-item-bg rounded-lg">
-                            <legend className="px-2 font-plex-mono text-sm text-white">
+                            <legend className="px-2 font-plex-mono text-sm text-gray-900 dark:text-white">
                                 {t('followUp')}
                             </legend>
                             <input
@@ -235,7 +235,7 @@ export const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ pati
                                 value={followUp}
                                 onChange={(e) => setFollowUp(e.target.value)}
                                 placeholder={t('recheckupTime')}
-                                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md text-sm"
+                                className="w-full px-3 py-2 bg-gray-100 dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-white text-sm"
                             />
                         </fieldset>
                     </div>

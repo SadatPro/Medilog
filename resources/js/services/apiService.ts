@@ -104,6 +104,13 @@ export const apiService = {
 		});
 	},
 
+	removeAccess: async (doctorId: string, patientId: string): Promise<void> => {
+		await http(`${API_BASE}/access/remove`, {
+			method: 'POST',
+			body: JSON.stringify({ doctorId, patientId }),
+		});
+	},
+
 	registerDoctor: async (data: { name: string; specialization: string; email: string; phone: string; password: string; dateOfBirth: string; nid: string; profilePictureUrl?: string; }): Promise<Doctor> => {
 		return http<Doctor>(`${API_BASE}/doctors`, {
 			method: 'POST',

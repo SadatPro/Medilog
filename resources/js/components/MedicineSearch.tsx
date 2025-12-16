@@ -5,6 +5,7 @@ import { useTranslations } from '../contexts/TranslationContext';
 import { geminiService } from '../services/geminiService';
 import { Medicine, PrescriptionItem } from '../types';
 import { IconSpinner } from './icons';
+import { OFFLINE_MEDICINES } from '../data/offlineMedicines';
 
 interface MedicineSearchProps {
     onAddItem: (item: PrescriptionItem) => void;
@@ -18,16 +19,35 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onAddItem }) => 
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
+    const offlineSearch = useCallback((q: string): Medicine[] => {
+        const s = q.trim().toLowerCase();
+        if (!s) return [];
+        return OFFLINE_MEDICINES.filter(m => 
+            m.brandName.toLowerCase().includes(s) || 
+            m.genericName.toLowerCase().includes(s)
+        ).slice(0, 8);
+    }, []);
+
     const fetchSuggestions = useCallback(async (searchQuery: string) => {
+        const local = offlineSearch(searchQuery);
         if (searchQuery.length < 3) {
-            setSuggestions([]);
+            setSuggestions(local.length ? local : OFFLINE_MEDICINES.slice(0, 8));
             return;
         }
         setIsLoading(true);
-        const results = await geminiService.suggestMedicines(searchQuery);
-        setSuggestions(results);
+        const online = await geminiService.suggestMedicines(searchQuery);
+        const merged: Medicine[] = [];
+        const seen = new Set<string>();
+        [...local, ...online].forEach(m => {
+            const key = `${m.brandName.toLowerCase()}|${m.genericName.toLowerCase()}|${m.strength.toLowerCase()}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                merged.push(m);
+            }
+        });
+        setSuggestions(merged.slice(0, 10));
         setIsLoading(false);
-    }, []);
+    }, [offlineSearch]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -77,30 +97,30 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onAddItem }) => 
                 onChange={handleInputChange}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder={t('searchMedicine')}
-                className="w-full pl-4 pr-10 py-3 bg-[#111] border border-gray-800 rounded-lg"
+                className="w-full pl-4 pr-10 py-3 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-lg text-white placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300"
             />
             {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-gray-800 rounded-lg z-10 max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-gradient-to-br from-purple-900/90 to-blue-900/90 backdrop-blur-lg border border-purple-500/50 rounded-lg z-10 max-h-60 overflow-y-auto shadow-2xl">
                     {isLoading ? (
-                        <div className="p-3 text-sm text-gray-400 font-plex-mono flex items-center justify-center gap-2">
-                            <IconSpinner className="h-4 w-4" />
-                            <span>{t('loading')}...</span>
+                        <div className="p-3 text-sm text-purple-200 font-plex-mono flex items-center justify-center gap-2">
+                            <IconSpinner className="h-4 w-4 animate-spin text-purple-400" />
+                            <span className="text-purple-300">{t('loading')}...</span>
                         </div>
                     ) : suggestions.length > 0 ? (
                         suggestions.map((med, index) => (
                             <div
                                 key={`${med.brandName}-${index}`}
                                 onClick={() => handleSelect(med)}
-                                className="p-3 hover:bg-gray-800 cursor-pointer border-b border-gray-700 last:border-b-0"
+                                className="p-4 hover:bg-gradient-to-r hover:from-purple-800/60 hover:to-blue-800/60 cursor-pointer border-b border-purple-500/30 last:border-b-0 transition-all duration-200"
                             >
                                 <p className="font-semibold text-white">
-                                    {med.brandName} <span className="text-sm font-normal text-gray-400">({med.genericName})</span>
+                                    {med.brandName} <span className="text-sm font-normal text-purple-300">({med.genericName})</span>
                                 </p>
-                                <p className="text-xs text-gray-500 font-plex-mono">{med.strength}</p>
+                                <p className="text-xs text-purple-200 font-plex-mono mt-1">{med.strength}</p>
                             </div>
                         ))
                     ) : query.length >= 3 ? (
-                        <div className="p-3 text-sm text-gray-400 font-plex-mono">{t('noSuggestions')}</div>
+                        <div className="p-3 text-sm text-purple-200 font-plex-mono">{t('noSuggestions')}</div>
                     ) : null}
                 </div>
             )}

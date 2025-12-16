@@ -10,7 +10,7 @@ interface PrescriptionListProps {
 }
 
 const PrescriptionItemCard: React.FC<{ item: PrescriptionItem; onUpdate: (updatedItem: PrescriptionItem) => void; onRemove: () => void; }> = ({ item, onUpdate, onRemove }) => {
-    const { t } = useTranslations();
+    const { t, language } = useTranslations();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
 
     const handleChange = (field: keyof PrescriptionItem, value: string) => {
@@ -19,7 +19,7 @@ const PrescriptionItemCard: React.FC<{ item: PrescriptionItem; onUpdate: (update
 
     const handleSuggestDosage = async () => {
         setIsSuggesting(true);
-        const suggestion = await geminiService.getDosageSuggestion(item);
+        const suggestion = await geminiService.getDosageSuggestion(item, language);
         if (suggestion) {
             onUpdate({ ...item, ...suggestion });
         }
@@ -41,8 +41,8 @@ const PrescriptionItemCard: React.FC<{ item: PrescriptionItem; onUpdate: (update
                 <div className="relative">
                     <label className="font-plex-mono text-xs text-gray-400">{t('dosage')}</label>
                     <div className="flex items-center">
-                        <input type="text" value={item.dosage} onChange={(e) => handleChange('dosage', e.target.value)} className="item-input w-full mt-1 pr-24 pl-3 py-2 bg-black border border-gray-700 rounded-md text-sm" />
-                        <button onClick={handleSuggestDosage} disabled={isSuggesting} className="absolute right-1 top-6 px-2 py-1 bg-gray-700 text-white rounded text-xs font-plex-mono hover:bg-gray-600 transition-colors flex items-center disabled:opacity-50">
+                        <input type="text" value={item.dosage} onChange={(e) => handleChange('dosage', e.target.value)} className="item-input w-full mt-1 pr-24 pl-3 py-2 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-md text-white placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm" />
+                        <button onClick={handleSuggestDosage} disabled={isSuggesting} className="absolute right-1 top-6 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded text-xs font-plex-mono hover:from-purple-500 hover:to-blue-500 transition-all duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
                             {isSuggesting ? (
                                 <IconSpinner className="h-4 w-4 mr-1" />
                             ) : (
@@ -52,9 +52,9 @@ const PrescriptionItemCard: React.FC<{ item: PrescriptionItem; onUpdate: (update
                         </button>
                     </div>
                 </div>
-                <div><label className="font-plex-mono text-xs text-gray-400">{t('frequency')}</label><input type="text" value={item.frequency} onChange={(e) => handleChange('frequency', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-black border border-gray-700 rounded-md text-sm" /></div>
-                <div><label className="font-plex-mono text-xs text-gray-400">{t('duration')}</label><input type="text" value={item.duration} onChange={(e) => handleChange('duration', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-black border border-gray-700 rounded-md text-sm" /></div>
-                <div><label className="font-plex-mono text-xs text-gray-400">{t('notes')}</label><input type="text" value={item.notes} onChange={(e) => handleChange('notes', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-black border border-gray-700 rounded-md text-sm" /></div>
+                <div><label className="font-plex-mono text-xs text-gray-400">{t('frequency')}</label><input type="text" value={item.frequency} onChange={(e) => handleChange('frequency', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-md text-white placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm" /></div>
+                <div><label className="font-plex-mono text-xs text-gray-400">{t('duration')}</label><input type="text" value={item.duration} onChange={(e) => handleChange('duration', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-md text-white placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm" /></div>
+                <div><label className="font-plex-mono text-xs text-gray-400">{t('notes')}</label><input type="text" value={item.notes} onChange={(e) => handleChange('notes', e.target.value)} className="item-input w-full mt-1 px-3 py-2 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-md text-white placeholder-white/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all duration-300 text-sm" /></div>
             </div>
         </div>
     );
@@ -76,10 +76,12 @@ export const PrescriptionList: React.FC<PrescriptionListProps> = ({ items, onUpd
 
     if (items.length === 0) {
         return (
-            <div className="text-center py-8 px-4 border-2 border-dashed border-gray-800 rounded-lg">
-                <IconNoMedicines className="mx-auto h-10 w-10 text-gray-600" />
-                <p className="mt-3 text-lg font-plex-mono text-white">{t('noMedicines')}</p>
-                <p className="text-sm text-gray-500">{t('noMedicinesHint')}</p>
+            <div className="text-center py-8 px-4 border-2 border-dashed border-purple-500/50 rounded-lg bg-gradient-to-r from-purple-900/20 to-blue-900/20">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <IconNoMedicines className="h-8 w-8 text-white" />
+                </div>
+                <p className="mt-3 text-lg font-plex-mono text-white font-bold">{t('noMedicines')}</p>
+                <p className="text-sm text-purple-200">{t('noMedicinesHint')}</p>
             </div>
         );
     }

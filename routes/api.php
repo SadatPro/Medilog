@@ -41,9 +41,11 @@ Route::prefix('medilog')->group(function () {
     Route::post('/access/request', [MedilogController::class, 'requestAccess']);
     Route::post('/access/approve', [MedilogController::class, 'approveAccess']);
     Route::post('/access/decline', [MedilogController::class, 'declineAccess']);
+    Route::post('/access/remove', [MedilogController::class, 'removeAccess']);
 
     // Registration and password reset
     Route::post('/doctors', [MedilogController::class, 'registerDoctor']);
     Route::post('/patients', [MedilogController::class, 'registerPatient']);
     Route::post('/password/reset-request', [MedilogController::class, 'requestPasswordReset']);
+    Route::post('/patients/demo-seed', [MedilogController::class, 'seedDemoPatients']);
 });
